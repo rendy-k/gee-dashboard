@@ -1,3 +1,5 @@
+library(plotly)
+library(readr)
 library(shiny)
 library(shinydashboard)
 library(leaflet)
@@ -9,7 +11,10 @@ ui <- dashboardPage(
   skin="green",
   dashboardHeader(title="Forest Dashboard"),
   dashboardSidebar(
-    menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"))
+    menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+    sliderInput(
+      "year_range", "Year range:",min = 2001, max = 2022, value = c(2001, 2022)
+    )
   ),
   dashboardBody(
     # First tab content
@@ -17,11 +22,25 @@ ui <- dashboardPage(
       tabName = "dashboard",
       h2("Forest Cover Loss and Emissions"),
       fluidRow(
-        box(plotOutput("plot1", height=100), width=4),
-        
+        column(width = 5,
+           box(
+             title = "Summary", width = NULL, status = "primary",
+             solidHeader = TRUE, icon = icon("list"), fill = TRUE,
+             textOutput("stock"),
+             textOutput("emission"),
+             textOutput("deforestation")
+           ),
+           box(
+             title = "Deforestation rate", width = NULL, solidHeader = TRUE,
+             status = "primary",
+             plotlyOutput("deforestation_rate", height=200)
+           )
+        ),
+
         # Raster map
         box(
-          leafletOutput("mymap"), width=8
+          "map",
+          leafletOutput("mymap"), width=7
         )
       ),
     )
@@ -36,11 +55,10 @@ server <- function(input, output, session) {
   emission <- raster("data/peat_carbon_emission_Gg.tif")
   carbon <- raster("data/carbon_t_per_ha.tif")
   lossyear <- raster("data/lossyear.tif")
-  treecover_2000 <- raster("data/treecover_2000.tif")
   # Palette
-  pal_emission <- colorNumeric("Reds", values(emission), na.color="transparent")
+  pal_emission <- colorNumeric("viridis", values(emission), na.color="transparent")
   pal_carbon <- colorNumeric("YlOrBr", values(carbon), na.color="transparent")
-  pal_lossyear <- colorNumeric("Greens", values(lossyear), na.color="transparent")
+  pal_lossyear <- colorNumeric("magma", values(lossyear), na.color="transparent")
   
   # Leaflet
   output$mymap <- renderLeaflet({
@@ -58,6 +76,54 @@ server <- function(input, output, session) {
       ) %>%
       hideGroup(c("carbon", "lossyear"))
   })
+  
+  # Deforestation chart
+  deforestation_data <- read_csv('data/deforestation_rate.csv', show_col_types = FALSE)
+  output$deforestation_rate <- renderPlotly({
+    fig <- plot_ly(
+      data = deforestation_data,
+      x = ~year,
+      y = ~percentage,
+      text = ~remaining_ha,
+      hovertemplate = paste(
+        'Year: %{x}\n',
+        'Remaining area: %{text} ha\n',
+        'Remaining area percentage: %{y} %'),
+      type = 'scatter', mode='lines+markers'
+    )
+  })
+  
+  # Carbon stock
+  output$stock <- renderText({
+    paste("Carbon Stock average: 112 ± 57 t/ha")
+  })
+  
+  # Peat emission
+  output$emission <- renderText({
+    paste("Peat emission average: 0.32 ± 0.28 Gg")
+  })
+  
+  
+  
+  output$deforestation <- renderText({
+    # Year range
+    deforestation_in_year = round(
+      sum(
+        deforestation_data[
+          (
+            (deforestation_data["year"]>=input$year_range[1]) & (deforestation_data["year"]<=input$year_range[2])
+          ),
+          "deforestation_ha"
+        ]
+      )/ (input$year_range[2] - input$year_range[1] + 1),
+      1
+    )
+    deforestation_in_year = format(deforestation_in_year, big.mark=",", scientific=FALSE)
+    
+    # Deforestation
+    paste("Deforestation rate in year ", input$year_range[1], " - ", input$year_range[2], ": ", deforestation_in_year, " ha/yr")
+  })
+  
 }
 
 
