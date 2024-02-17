@@ -25,7 +25,7 @@ ui <- dashboardPage(
         column(width = 5,
            box(
              title = "Summary", width = NULL, status = "primary",
-             solidHeader = TRUE, icon = icon("list"), fill = TRUE,
+             solidHeader = TRUE, fill = TRUE,
              textOutput("stock"),
              textOutput("emission"),
              textOutput("deforestation")
@@ -39,7 +39,7 @@ ui <- dashboardPage(
 
         # Raster map
         box(
-          "map",
+          title = "Map", status = "primary", solidHeader = TRUE, fill = TRUE,
           leafletOutput("mymap"), width=7
         )
       ),
@@ -116,7 +116,7 @@ server <- function(input, output, session) {
           "deforestation_ha"
         ]
       )/ (input$year_range[2] - input$year_range[1] + 1),
-      1
+      0
     )
     deforestation_in_year = format(deforestation_in_year, big.mark=",", scientific=FALSE)
     
