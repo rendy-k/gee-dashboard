@@ -26,3 +26,8 @@ The carbon stock data presents the carbon stock density in tonne carbon per hect
 
 The annual peat carbon emission is presented in the Gigagram unit. It only shows the emission of cropland in peatland areas. The emissions average and standard deviation was 0.32 ± 0.28 Gg.
 
+
+# Dashboard view
+
+Check "Forest Cover Loss and Emissions.pptx" for more details.
+![alt text](image.png)
